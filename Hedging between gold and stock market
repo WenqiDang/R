@@ -1,0 +1,368 @@
+## Install packages
+install.packages("TSA")
+install.packages("fGarch")
+library(TSA)
+library(fGarch)
+install.packages("ccgarch")
+library(ccgarch)
+
+## Data pre-processing
+## Read data, set data form
+GOLD=read.csv("D:/senior/gold/JPYgold.csv",header=T)
+class(GOLD[,1])
+GOLD[,1]=as.Date(GOLD[,1])
+
+INDEX=read.csv("D:/senior/index/JPYindex.csv",header=T)
+class(INDEX[,1])
+INDEX[,1]=as.Date(INDEX[,1])
+
+#US GOLD[4183:531,], GOLD[530:1,], INDEX[4032:512,], INDEX[511:1,]
+#CA GOLD[4183:531,], GOLD[530:1,], INDEX[4092:510,], INDEX[509:1,]
+#CN GOLD[4183:531,], GOLD[530:1,], INDEX[3887:501,], INDEX[501:1,]
+#HK GOLD[2210:210,], GOLD[209:1,], INDEX[4085:504,], INDEX[503:1,]
+#JP GOLD[4183:531,], GOLD[530:1,], INDEX[3930:495,], INDEX[496:1,]
+#
+GOLD[4183,]
+GOLD[531,]
+goldin=GOLD[4183:531,]
+goldout=GOLD[530:1,]
+
+INDEX[495,]
+indexin=INDEX[3930:495,]
+indexout=INDEX[496:1,]
+
+## Combine data
+combinein=merge(indexin,goldin)
+head(combinein)
+tail(combinein)
+combineout=merge(indexout, goldout)
+head(combineout)
+
+write.table(combinein,file="D:/senior/JPin.txt")
+write.table(combineout,file="D:/senior/JPout.txt")
+
+## Read data
+USin=read.table("D:/senior/USin.txt",header=T)
+goldin=USin[,2]
+indexin=USin[,3]
+goldin=ts(goldin)
+indexin=ts(indexin)
+
+USout=read.table("D:/senior/USout.txt",header=T)
+goldout=USout[,2]
+indexout=USout[,3]
+
+par(mfrow=c(2,1))
+plot(goldin, type="l")
+plot(indexin, type="l")
+
+cor(goldin,indexin)
+cor(goldout,indexout)
+
+## Get log price
+lngold=log(goldin)
+lnindex=log(indexin)
+mark = ts(goldin)
+plot(mark)
+plot(lngold)
+plot(lnindex)
+par(mfrow=c(2,1))
+acf(lngold)
+pacf(lngold)
+
+## Get first order difference
+retgold=diff(lngold)
+retindex=diff(lnindex)
+plot(retgold, type="l")
+plot(retindex, type="l")
+acf(retgold)
+pacf(retgold)
+acf(retindex)
+pacf(retindex)
+
+## Fit gold arima model
+armag=arima(lngold,order=c(2,1,0))
+armag
+tsdiag(armag)
+r1=as.ts(armag$residuals)
+r1=retgold
+par(mfrow=c(3,1))
+plot(r1)
+acf(r1)
+pacf(r1)
+Box.test(r1,lag=8,type="Ljung")
+abs(polyroot(c(1,armag$coef[1])))
+adf.test(r1)
+aic=-20758
+
+## Fit gold garch model
+sq = (r1-mean(r1))**2
+par(mfrow=c(2,1))
+acf(sq)
+pacf(sq)
+Box.test(sq,lag=6,type="Ljung")
+Box.test(sq,lag=12,type="Ljung")
+
+##garch1=garchFit(~garch(1,1),data=r1,include.mean=T,cond.dist="std",trace=F)
+##summary(garch1)
+garchg=garchFit(~arma(1,0)+garch(1,1),data=retgold,include.mean=F,cond.dist="std",trace=F)
+summary(garchg)
+sigmag = garch1@sigma.t
+
+
+## Fit index arima model
+armai=arima(lnindex,order=c(1,1,1))
+armai
+tsdiag(armai)
+r2=as.ts(armai$residuals)
+par(mfrow=c(3,1))
+plot(r2)
+acf(r2)
+pacf(r2)
+Box.test(r2,lag=8,type="Ljung")
+abs(polyroot(c(1,armai$coef[1])))
+adf.test(r2)
+aic=-20758
+
+## Fit index garch model
+sq = (r2-mean(r2))**2
+par(mfrow=c(2,1))
+acf(sq)
+pacf(sq)
+Box.test(sq,lag=6,type="Ljung")
+Box.test(sq,lag=12,type="Ljung")
+
+garchi=garchFit(~garch(1,1),data=r2,include.mean=T,cond.dist="std",trace=F)
+summary(garchi)
+##garchi=garchFit(~arma(1,0)+garch(1,1),data=retindex,include.mean=F,cond.dist="std",trace=F)
+##summary(garchi)
+sigmai = garchi@sigma.t
+
+
+##
+## Test garch model 
+par(mfrow=c(2,1))
+plot(r2,type='l')
+plot(garchi@sigma.t,type='l')
+sresi=garchi@residuals/garchi@sigma.t
+
+## v(t) test white noise
+plot(sresi,type='l')
+pacf(sresi**2)
+Box.test(sresi**2,lag=12,type='Ljung')
+par(mfrow=c(1,1))
+plot(sresi,type='l')
+hist(sresi)
+densityPlot(as.timeSeries(sresi))
+curve(dnorm(x),xlim=c(-5,5),col="green",lwd=3,add=TRUE)
+curve(dnorm(x,mean(sresi),sd(sresi)),xlim=c(-5,5),lwd=3,col="blue",add=TRUE)
+qqnorm(sresi)
+qqline(sresi)
+
+
+#####final model t distribution test
+plot(garchi@sigma.t,type="l")
+sdres=garchi@residuals/garchi@sigma.t
+par(mfrow=c(3,1))
+plot(sdres,type="l")
+acf(sdres)
+pacf(sdres)
+Box.test(sdres,lag=6,type="Ljung")
+Box.test(sdres,lag=12,type="Ljung")
+v=
+h1=bw.ucv(sdres)
+f=density(sdres,bw=h1,from=min(sdres,to=max(sdres)))
+plot(f,type="l",lwd=2,main="",xlab="sdres",col="blue")
+curve(sqrt(v/(v-2))*dt(x*sqrt(v/(v-2)),df=v),col="red",add=TRUE,lwd=2)
+##qqplot(rt(10000,v),sdres)
+qqline(sdres,distribution=function(x)qt(x,df=4))
+plot(d1cp,type="l")
+lines(garchi@sigma.t,col="red",lwd=2)
+
+##sigmag and sigmai
+
+##hedge row 311
+##var hedge
+y1=retgold*100
+y2=retindex*100
+varf=var(y1)
+varg=var(y2)
+varpf=predictcp$standardDeviation
+varpg=predictgp$standardDeviation
+rho=cor(y1,y2)
+H=rho*sqrt(varg/varf)
+H
+rh=y1-H*y2
+varh=var(rh)
+
+##OLS hedge
+plot(retindex)
+plot(retgold)
+r=lm(retindex~retgold)
+summary(r)
+h = -0.0290271
+sd(retgold)
+sd(retindex)
+mean(retindex-retgold)
+sd(retindex-retgold)
+mean(retindex-h*retgold)
+sd(retindex-h*retgold)
+
+##garch hedge
+rho = cor(retindex,retgold)
+hedge = rho*sigmai/sigmag
+head(hedge)
+hedge = hedge[c(2:3521)]
+length(hedge)
+length(retgold)
+meanchf = mean(retindex-hedge*retgold)
+variancechf = sd(retindex-hedge*retgold)
+
+
+############## Out-sample data fitting
+USout=read.table("D:/senior/USout.txt",header=T)
+goldout=USout[,2]
+indexout=USout[,3]
+outretg=diff(log(goldout))
+outreti=diff(log(indexout))
+length(outretg)
+r=lm(outreti~outretg)
+summary(r)
+h = -0.1551
+
+garchg=garchFit(~arma(1,0)+garch(1,1),data=outretg,include.mean=F,cond.dist="std",trace=F)
+sigmag = garchg@sigma.t
+garchi=garchFit(~garch(1,1),data=outreti,include.mean=T,cond.dist="std",trace=F)
+sigmai = garchi@sigma.t
+length(sigmag)
+length(sigmai)
+
+rho = cor(outreti,outretg)
+hedge = rho*sigmai/sigmag
+head(hedge)
+length(hedge)
+length(outretg)
+
+sd(outretg)
+sd(outreti)
+sd(outreti-outretg)
+sd(outreti-h*outretg)
+sd(outreti-hedge*outretg)
+mean(outretg)
+mean(outreti)
+mean(outreti-outretg)
+mean(outreti-h*outretg)
+mean(outreti-hedge*outretg)
+
+
+
+###################### Plot of conditional standard deviation
+picture =data.frame(spot=d1gp,futures=d1fp,spread=spread)
+spread=d1gp-d1fp
+length(picture[,1])
+head(picture)
+mspread = mean(picture$spread)
+sdspread = sd(picture$spread)
+picture$spread = picture$spread/sdspread
+range(picture$spread)
+
+SDspot = rep(0,100)
+SDfuture = rep(0,100)
+for (i in 1:50) 
+{
+  x = -3+i*6/100
+  SDspot[i] = sd(picture[picture$spread<=x,1])
+  SDfuture[i] = sd(picture[picture$spread<=x,2])
+}
+for (i in 51:100) {
+  x = -3+i*6/100
+  SDspot[i] = sd(picture[picture$spread>=x,1])
+  SDfuture[i] = sd(picture[picture$spread>=x,2])
+}
+
+################################################################# Plot standard deviation of futures return
+paud = array(0,dim = c(100,3))
+paud[,1] = SDspot*100
+paud[,2] = SDfuture*100
+paud[,3] = seq(-2.94,3,by = 0.06)
+plot(paud[,3],paud[,1],type = "o",col = "red",pch = 15,
+     xlab = "Degree of Spread",ylab = "Standard Deviation",main = "gold",
+     xlim = c(-3,3),ylim = c(0.8,2.5))
+lines(paud[,3],paud[,2],type = "o",col = "blue",pch = 17)
+legend(-1.5,2.5,legend = "standard deviation of spot return",
+       pch = 15,col = "red",bty="n")
+legend(-1.5,2.3,legend = "standard deviation of futures return",
+       pch = 17,col = "blue",bty="n")
+
+
+###############################################  Estimate dcc-garch model
+xt=cbind(retindex,retgold)
+head(xt)
+garchid=garchFit(~garch(1,1),data=retindex,include.mean=T,cond.dist="std",trace=F)
+garchgd=garchFit(~garch(1,1),data=retgold,include.mean=T,cond.dist="std",trace=F)
+summary(garchid)
+summary(garchgd)
+inia=c(1.4273e-06,1.2743e-06) ##garch constant
+iniA=diag(c(9.4811e-01,9.0070e-01))
+iniB=diag(c(4.3126e-02,9.2333e-02))
+dcc.para=c(0.01,0.98)
+dcc.results=dcc.estimation(inia, iniA, iniB, dcc.para, dvar=xt, model="diagonal")
+out=dcc.results$out
+out
+DCC=dcc.results$DCC[,2]
+ts.plot(DCC)
+summary(out)
+sigmadcc=dcc.results$h
+head(sigmadcc)
+head(sigmaid)
+head(sigmagd)
+
+sigmaid=sqrt(sigmadcc[,1])
+sigmagd=sqrt(sigmadcc[,2])
+
+rho = cor(retindex,retgold)
+hedged= rho*sigmaid/sigmagd
+head(hedged)
+length(hedged)
+length(retgold)
+mean(retindex-hedged*retgold)
+sd(retindex-hedged*retgold)
+
+############################################# out-sample dcc fitting
+USout=read.table("D:/senior/USout.txt",header=T)
+goldout=USout[,2]
+indexout=USout[,3]
+outretg=diff(log(goldout))
+outreti=diff(log(indexout))
+length(outretg)
+xt=cbind(outreti,outretg)
+inia=c(1.4273e-06,1.2743e-06) ##garch constant
+iniA=diag(c(9.4811e-01,9.0070e-01))
+iniB=diag(c(4.3126e-02,9.2333e-02))
+dcc.para=c(0.01,0.98)
+dcc.results=dcc.estimation(inia, iniA, iniB, dcc.para, dvar=xt, model="diagonal")
+sigmadcc=dcc.results$h
+sigmaid=sqrt(sigmadcc[,1])
+sigmagd=sqrt(sigmadcc[,2])
+rho = cor(outreti,outretg)
+hedged= rho*sigmaid/sigmagd
+mean(outreti-hedged*outretg)
+sd(outreti-hedged*outretg)
+
+
+############################### Test Result
+head(dcc.results$std.resid)
+res1=dcc.results$std.resid[,1]
+res2=dcc.results$std.resid[,2]
+jarque.bera.test(res1)
+jarque.bera.test(res2)
+shapiro.test(res1)
+shapiro.test(res2)
+Box.test(res1, lag = 10, type = "Ljung-Box")
+Box.test(res1^2, lag = 10, type = "Ljung-Box")
+Box.test(res1, lag = 20, type = "Ljung-Box")
+Box.test(res1^2, lag = 20, type = "Ljung-Box")
+Box.test(res2, lag = 10, type = "Ljung-Box")
+Box.test(res2^2, lag = 10, type = "Ljung-Box")
+Box.test(res2, lag = 20, type = "Ljung-Box")
+Box.test(res2^2, lag = 20, type = "Ljung-Box")
