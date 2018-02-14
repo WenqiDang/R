@@ -1,0 +1,1089 @@
+## Install pachages
+install.packages(tseries)
+library(tseries)
+install.packages(fBasics)
+library(fBasics)
+install.packages("urca")
+library(TSA)
+install.packages("fGarch")
+library(fGarch)
+library(urca)
+
+##data prepare
+############### Read Australian Dollar data and pre-processing
+spotaud = read.csv("E:/data/Exchange Rate data/CURRFX-USDAUD.csv",header = T)
+spotaud = spotaud[,c(-3,-4)]
+head(spotaud)
+futureaud= read.csv("E:/data/CME Futures data/CHRIS-CME_AD1.csv",head = T)
+futureaud=futureaud[,c(-2,-3,-4,-6,-7,-8,-9)]
+head(futureaud)
+futureaud[,2]=1/futureaud[,2]
+aud = merge(spotaud,futureaud)
+head(aud)
+names(aud)[2] = "spot"
+names(aud)[3] = "future"
+class(aud[,1])
+aud[,1] = as.Date(aud[,1])
+audmodel= aud[aud$Date>="2010-06-01"&aud$Date<="2014-12-31",]
+audtest = aud[aud$Date>="2015-01-02"&aud$Date<="2015-12-31",]
+head(audmodel)
+head(audtest)
+
+write.csv(audmodel,file="E:/data/audmodel.csv")
+write.csv(audtest,file="E:/data/audtest.csv")
+
+################aud
+spotaud = read.csv("E:/data/Exchange Rate data/CURRFX-USDCAD.csv",header = T)
+spotaud = spotaud[,c(-3,-4)]
+head(spotaud)
+futureaud= read.csv("E:/data/CME Futures data/CHRIS-CME_CD1.csv",head = T)
+futureaud=futureaud[,c(-2,-3,-4,-6,-7,-8,-9)]
+futureaud[,2]=1/futureaud[,2]
+head(futureaud)
+aud = merge(spotaud,futureaud)
+head(aud)
+names(aud)[2] = "spot"
+names(aud)[3] = "future"
+aud[,1] = as.Date(aud[,1])
+class(aud[,1])
+gbpmodel= aud[aud$Date>="2010-06-01"&aud$Date<="2014-12-31",]
+gbptest = aud[aud$Date>="2015-01-02"&aud$Date<="2015-12-31",]
+head(gbpmodel)
+head(gbptest)
+
+write.csv(gbpmodel,file="E:/data/cadmodel.csv")
+write.csv(gbptest,file="E:/data/cadtest.csv")
+
+####### Read five data sets of Australia, Canada, China, Europe, and British exchange rates
+aud = read.csv("E:/data/audmodel.csv",header = T)
+cad = read.csv("E:/data/cadmodel.csv",header = T)
+chf = read.csv("E:/data/chfmodel.csv",header = T)
+eur = read.csv("E:/data/eurmodel.csv",header = T)
+gbp = read.csv("E:/data/gbpmodel.csv",header = T)
+n = length(aud[,2])
+######################################### Obtain log return of Australia data
+logaud = aud[,-1]
+logaud[,2] = log(logaud[,2])
+logaud[,3] = log(logaud[,3])
+retauds = diff(logaud[,2])
+retaudf = diff(logaud[,3])
+######################################### Obtain difference series
+retaud = aud[-1,c(-1,-2)]
+retaud[,1] = retauds
+retaud[,2] = retaudf
+spread = logaud[,2]-logaud[,3]
+retaud$spread = spread[-1]
+head(retaud)
+######################################### Statistical Discription
+ms = mean(retaud$future)
+sds = sd(retaud$future)
+sks = skewness(retaud$future)
+kus = kurtosis(retaud$future)+3
+maxs=max(retaud$future)
+mins=min(retaud$future)
+jarque.bera.test(retaud$future)
+adf.test(retaud$future)
+ca.jo(retaud[,-3], type = "eigen",ecdet = "const",K = 2,spec="longrun")
+Box.test(retaud$future, lag = 20, type = "Ljung-Box")
+Box.test(retaud$future^2, lag = 20, type = "Ljung-Box")
+#############################################################
+#############################################################
+######################################### Obtain log return of Canada data
+logcad = cad[,-1]
+logcad[,2] = log(logcad[,2])
+logcad[,3] = log(logcad[,3])
+retcads = diff(logcad[,2])
+retcadf = diff(logcad[,3])
+######################################### Obtain difference series
+retcad = cad[-1,c(-1,-2)]
+retcad[,1] = retcads
+retcad[,2] = retcadf
+spread = logcad[,2]-logcad[,3]
+retcad$spread = spread[-1]
+head(retcad)
+######################################### Statistical Discription
+ms = mean(retcad$future)
+sds = sd(retcad$future)
+sks = skewness(retcad$future)
+kus = kurtosis(retcad$future)+3
+maxs=max(retcad$future)
+mins=min(retcad$future)
+jarque.bera.test(retcad$future)
+adf.test(retcad$future)
+ca.jo(retcad[,-3], type = "eigen",ecdet = "const",K = 2,spec="longrun")
+Box.test(retcad$future, lag = 20, type = "Ljung-Box")
+Box.test(retcad$future^2, lag = 20, type = "Ljung-Box")
+#########################################################
+#########################################################
+######################################### Obtain log return of China data
+logchf = chf[,-1]
+logchf[,2] = log(logchf[,2])
+logchf[,3] = log(logchf[,3])
+retchfs = diff(logchf[,2])
+retchff = diff(logchf[,3])
+######################################### Obtain difference series
+retchf = chf[-1,c(-1,-2)]
+retchf[,1] = retchfs
+retchf[,2] = retchff
+spread = logchf[,2]-logchf[,3]
+retchf$spread = spread[-1]
+head(retchf)
+######################################### Statistical Discription
+ms = mean(retchf$spread)
+sds = sd(retchf$spread)
+sks = skewness(retchf$spread)
+kus = kurtosis(retchf$spread)+3
+maxs=max(retchf$spread)
+mins=min(retchf$spread)
+jarque.bera.test(retchf$spread)
+adf.test(retchf$spread)
+ca.jo(retchf[,-3], type = "eigen",ecdet = "const",K = 2,spec="longrun")
+Box.test(retchf$spread, lag = 20, type = "Ljung-Box")
+Box.test(retchf$spread^2, lag = 20, type = "Ljung-Box")
+#########################################################
+#########################################################
+######################################### Obtain log return of Europe data
+logeur = eur[,-1]
+logeur[,2] = log(logeur[,2])
+logeur[,3] = log(logeur[,3])
+reteurs = diff(logeur[,2])
+reteurf = diff(logeur[,3])
+######################################### Obtain difference series
+reteur = eur[-1,c(-1,-2)]
+reteur[,1] = reteurs
+reteur[,2] = reteurf
+spread = logeur[,2]-logeur[,3]
+reteur$spread = spread[-1]
+head(reteur)
+######################################### Statistical Discription
+ms = mean(reteur$future)
+sds = sd(reteur$future)
+sks = skewness(reteur$future)
+kus = kurtosis(reteur$future)+3
+maxs=max(reteur$future)
+mins=min(reteur$future)
+jarque.bera.test(reteur$future)
+adf.test(reteur$future)
+ca.jo(reteur[,-3], type = "eigen",ecdet = "const",K = 2,spec="longrun")
+Box.test(reteur$future, lag = 20, type = "Ljung-Box")
+Box.test(reteur$future^2, lag = 20, type = "Ljung-Box")
+#########################################################
+#########################################################
+######################################### Obtain log return of British data
+loggbp = gbp[,-1]
+loggbp[,2] = log(loggbp[,2])
+loggbp[,3] = log(loggbp[,3])
+retgbps = diff(loggbp[,2])
+retgbpf = diff(loggbp[,3])
+######################################### Obtain difference series
+retgbp = gbp[-1,c(-1,-2)]
+retgbp[,1] = retgbps
+retgbp[,2] = retgbpf
+spread = loggbp[,2]-loggbp[,3]
+retgbp$spread = spread[-1]
+head(retgbp)
+######################################### Statistical Discription
+ms = mean(retgbp$spread)
+sds = sd(retgbp$spread)
+sks = skewness(retgbp$spread)
+kus = kurtosis(retgbp$spread)+3
+maxs=max(retgbp$spread)
+mins=min(retgbp$spread)
+jarque.bera.test(retgbp$spread)
+adf.test(retgbp$spread)
+ca.jo(retgbp[,-3], type = "eigen",ecdet = "const",K = 2,spec="longrun")
+Box.test(retgbp$spread, lag = 20, type = "Ljung-Box")
+Box.test(retgbp$spread^2, lag = 20, type = "Ljung-Box")
+##############################################################
+
+############################################### plot one
+picture = retaud
+picture = retcad
+picture = retchf
+picture = reteur
+picture = retgbp
+
+length(picture[,1])
+head(picture)
+mspread = mean(picture$spread)
+sdspread = sd(picture$spread)
+picture$spread = picture$spread/sdspread
+range(picture$spread)
+
+SDspot = rep(0,100)
+SDfuture = rep(0,100)
+for (i in 1:50) 
+{
+  x = -3+i*6/100
+  SDspot[i] = sd(picture[picture$spread<=x,1])
+  SDfuture[i] = sd(picture[picture$spread<=x,2])
+}
+for (i in 51:100) {
+  x = -3+i*6/100
+  SDspot[i] = sd(picture[picture$spread>=x,1])
+  SDfuture[i] = sd(picture[picture$spread>=x,2])
+}
+
+#################################################################aud
+paud = array(0,dim = c(100,3))
+paud[,1] = SDspot*100
+paud[,2] = SDfuture*100
+paud[,3] = seq(-2.94,3,by = 0.06)
+plot(paud[,3],paud[,1],type = "o",col = "red",pch = 15,
+     xlab = "Degree of Spread",ylab = "Standard Deviation",main = "AUD",
+     xlim = c(-3,3),ylim = c(0.4,1.5))
+lines(paud[,3],paud[,2],type = "o",col = "blue",pch = 17)
+legend(-1.5,1.5,legend = "standard deviation of spot return",
+       pch = 15,col = "red",bty="n")
+legend(-1.5,1.4,legend = "standard deviation of futures return",
+       pch = 17,col = "blue",bty="n")
+#################################################################cad
+pcad = array(0,dim = c(100,3))
+pcad[,1] = SDspot*100
+pcad[,2] = SDfuture*100
+pcad[,3] = seq(-2.94,3,by = 0.06)
+plot(pcad[,3],pcad[,1],type = "o",col = "red",pch = 15,
+     xlab = "Degree of Spread",ylab = "Standard Deviation",main = "CAD",
+     xlim = c(-3,3),ylim = c(0.4,1.5))
+lines(pcad[,3],pcad[,2],type = "o",col = "blue",pch = 17)
+legend(-1.5,1.5,legend = "standard deviation of spot return",
+       pch = 15,col = "red",bty="n")
+legend(-1.5,1.4,legend = "standard deviation of futures return",
+       pch = 17,col = "blue",bty="n")
+#################################################################chf
+pchf = array(0,dim = c(100,3))
+pchf[,1] = SDspot*100
+pchf[,2] = SDfuture*100
+pchf[,3] = seq(-2.94,3,by = 0.06)
+plot(pchf[,3],pchf[,1],type = "o",col = "red",pch = 15,
+     xlab = "Degree of Spread",ylab = "Standard Deviation",main = "CHF",
+     xlim = c(-3,3),ylim = c(0.4,1.5))
+lines(pchf[,3],pchf[,2],type = "o",col = "blue",pch = 17)
+legend(-1.5,1.5,legend = "standard deviation of spot return",
+       pch = 15,col = "red",bty="n")
+legend(-1.5,1.4,legend = "standard deviation of futures return",
+       pch = 17,col = "blue",bty="n")
+#################################################################eur
+peur = array(0,dim = c(100,3))
+peur[,1] = SDspot*100
+peur[,2] = SDfuture*100
+peur[,3] = seq(-2.94,3,by = 0.06)
+plot(peur[,3],peur[,1],type = "o",col = "red",pch = 15,
+     xlab = "Degree of Spread",ylab = "Standard Deviation",main = "EUR",
+     xlim = c(-3,3),ylim = c(0.4,1.5))
+lines(peur[,3],peur[,2],type = "o",col = "blue",pch = 17)
+legend(-1.5,1.5,legend = "standard deviation of spot return",
+       pch = 15,col = "red",bty="n")
+legend(-1.5,1.4,legend = "standard deviation of futures return",
+       pch = 17,col = "blue",bty="n")
+#################################################################gbp
+pgbp = array(0,dim = c(100,3))
+pgbp[,1] = SDspot*100
+pgbp[,2] = SDfuture*100
+pgbp[,3] = seq(-2.94,3,by = 0.06)
+plot(pgbp[,3],pgbp[,1],type = "o",col = "red",pch = 15,
+     xlab = "Degree of Spread",ylab = "Standard Deviation",main = "GBP",
+     xlim = c(-3,3),ylim = c(0.4,1.5))
+lines(pgbp[,3],pgbp[,2],type = "o",col = "blue",pch = 17)
+legend(-1.5,1.5,legend = "standard deviation of spot return",
+       pch = 15,col = "red",bty="n")
+legend(-1.5,1.4,legend = "standard deviation of futures return",
+       pch = 17,col = "blue",bty="n")
+
+par(mfrow = c(3,2))
+par(mfrow = c(1,1))
+
+
+###############################################plot two
+####################################aud
+pictureaud = retaud
+length(pictureaud[,1])
+head(pictureaud)
+mspread = mean(pictureaud$spread)
+sdspread = sd(pictureaud$spread)
+pictureaud$spread = pictureaud$spread/sdspread
+
+coraud = rep(0,100)
+for (i in 1:50) 
+{
+  x = -3+i*6/100
+  coraud[i] = cor(pictureaud[pictureaud$spread<=x,1],pictureaud[pictureaud$spread<=x,2])
+}
+for (i in 51:100) {
+  x = -3+i*6/100
+  coraud[i] = cor(pictureaud[pictureaud$spread>=x,1],pictureaud[pictureaud$spread>=x,2])
+}
+caud = array(0,dim = c(100,2))
+caud[,1] = coraud
+caud[,2] = seq(-2.94,3,by = 0.06)
+head(caud)
+plot(caud,type = "o")
+####################################cad
+picturecad = retcad
+length(picturecad[,1])
+head(picturecad)
+mspread = mean(picturecad$spread)
+sdspread = sd(picturecad$spread)
+picturecad$spread = picturecad$spread/sdspread
+
+corcad = rep(0,100)
+for (i in 1:50) 
+{
+  x = -3+i*6/100
+  corcad[i] = cor(picturecad[picturecad$spread<=x,1],picturecad[picturecad$spread<=x,2])
+}
+for (i in 51:100) {
+  x = -3+i*6/100
+  corcad[i] = cor(picturecad[picturecad$spread>=x,1],picturecad[picturecad$spread>=x,2])
+}
+ccad = array(0,dim = c(100,2))
+ccad[,1] = corcad
+ccad[,2] = seq(-2.94,3,by = 0.06)
+head(ccad)
+plot(ccad,type = "o")
+####################################chf
+picturechf = retchf
+length(picturechf[,1])
+head(picturechf)
+mspread = mean(picturechf$spread)
+sdspread = sd(picturechf$spread)
+picturechf$spread = picturechf$spread/sdspread
+
+corchf = rep(0,100)
+for (i in 1:50) 
+{
+  x = -3+i*6/100
+  corchf[i] = cor(picturechf[picturechf$spread<=x,1],picturechf[picturechf$spread<=x,2])
+}
+for (i in 51:100) {
+  x = -3+i*6/100
+  corchf[i] = cor(picturechf[picturechf$spread>=x,1],picturechf[picturechf$spread>=x,2])
+}
+cchf = array(0,dim = c(100,2))
+cchf[,1] = corchf
+cchf[,2] = seq(-2.94,3,by = 0.06)
+head(cchf)
+####################################eur
+pictureeur = reteur
+length(pictureeur[,1])
+head(pictureeur)
+mspread = mean(pictureeur$spread)
+sdspread = sd(pictureeur$spread)
+pictureeur$spread = pictureeur$spread/sdspread
+
+coreur = rep(0,100)
+for (i in 1:50) 
+{
+  x = -3+i*6/100
+  coreur[i] = cor(pictureeur[pictureeur$spread<=x,1],pictureeur[pictureeur$spread<=x,2])
+}
+for (i in 51:100) {
+  x = -3+i*6/100
+  coreur[i] = cor(pictureeur[pictureeur$spread>=x,1],pictureeur[pictureeur$spread>=x,2])
+}
+ceur = array(0,dim = c(100,2))
+ceur[,1] = coreur
+ceur[,2] = seq(-2.94,3,by = 0.06)
+head(ceur)
+####################################gbp
+picturegbp = retgbp
+length(picturegbp[,1])
+head(picturegbp)
+mspread = mean(picturegbp$spread)
+sdspread = sd(picturegbp$spread)
+picturegbp$spread = picturegbp$spread/sdspread
+
+corgbp = rep(0,100)
+for (i in 1:50) 
+{
+  x = -3+i*6/100
+  corgbp[i] = cor(picturegbp[picturegbp$spread<=x,1],picturegbp[picturegbp$spread<=x,2])
+}
+for (i in 51:100) {
+  x = -3+i*6/100
+  corgbp[i] = cor(picturegbp[picturegbp$spread>=x,1],picturegbp[picturegbp$spread>=x,2])
+}
+cgbp = array(0,dim = c(100,2))
+cgbp[,1] = corgbp
+cgbp[,2] = seq(-2.94,3,by = 0.06)
+head(cgbp)
+###########################################################################
+
+plot(caud[,2],caud[,1],type = "o",col = 1,pch = 15,
+     xlab = "Degree of Spread",ylab = "Correlation",
+     xlim = c(-3,3),ylim = c(0,1))
+lines(ccad[,2],ccad[,1],type = "o",col = 2,pch = 16)
+lines(cchf[,2],cchf[,1],type = "o",col = 3,pch = 17)
+lines(ceur[,2],ceur[,1],type = "o",col = 4,pch = 18)
+lines(cgbp[,2],cgbp[,1],type = "o",col = 5,pch = 19)
+ 
+legend(-2,0.1,legend = "AUD",pch = 15,col = 1,bty="n")
+legend(-1.2,0.1,legend = "CAD",pch = 16,col = 2,bty="n")
+legend(-0.4,0.1,legend = "CHF",pch = 17,col = 3,bty="n")
+legend(0.4,0.1,legend = "EUR",pch = 18,col = 4,bty="n")
+legend(1.2,0.1,legend = "GBP",pch = 19,col = 5,bty="n")
+
+
+
+#########################################aud
+head(retaud)
+r=lm(retauds~retaudf)
+summary(r)
+h = 0.6881
+sd(retauds)
+sd(retaudf)
+mean(retauds-retaudf)
+sd(retauds-retaudf)
+mean(retauds-h*retaudf)
+sd(retauds-h*retaudf)
+
+#########################################cad
+r=lm(retcads~retcadf)
+summary(r)
+h = 0.6729
+sd(retcads)
+sd(retcadf)
+mean(retcads-retcadf)
+sd(retcads-retcadf)
+mean(retcads-h*retcadf)
+sd(retcads-h*retcadf)
+
+#########################################chf
+r=lm(retchfs~retchff)
+summary(r)
+h = 0.7831
+sd(retchfs)
+sd(retchff)
+mean(retchfs-retchff)
+sd(retchfs-retchff)
+mean(retchfs-h*retchff)
+sd(retchfs-h*retchff)
+
+#########################################eur
+r=lm(reteurs~reteurf)
+summary(r)
+h = 0.7541
+sd(reteurs)
+sd(reteurf)
+mean(reteurs-reteurf)
+sd(reteurs-reteurf)
+mean(reteurs-h*reteurf)
+sd(reteurs-h*reteurf)
+
+#########################################gbp
+r=lm(retgbps~retgbpf)
+summary(r)
+h = 0.7000
+sd(retgbps)
+sd(retgbpf)
+mean(retgbps-retgbpf)
+sd(retgbps-retgbpf)
+mean(retgbps-h*retgbpf)
+sd(retgbps-h*retgbpf)
+
+#################################################################garch
+par(mfrow=c(2,1))
+acf(retauds)
+pacf(retauds)
+acf(retaudf)
+pacf(retaudf)
+
+##gold price arma model 1: arima(2,0,0)
+arma1=arima(retauds,order=c(2,0,0))
+arma1
+summary(arma1)
+tsdiag(arma1)
+r1=as.ts(arma1$residuals)
+par(mfrow=c(3,1))
+plot(r1)
+acf(r1)
+pacf(r1)
+Box.test(r1,lag=8,type="Ljung")
+abs(polyroot(c(1,arma1$coef[1])))
+aic = -16891.41
+
+arma2=arima(retaudf,order=c(1,0,1))
+arma2
+summary(arma2)
+tsdiag(arma2)
+r2=retaudf
+  as.ts(arma2$residuals)
+par(mfrow=c(3,1))
+plot(r2)
+acf(r2)
+pacf(r2)
+Box.test(r2,lag=8,type="Ljung")
+abs(polyroot(c(2,arma2$coef[1])))
+aic = -16610
+
+##arch data
+sq = (r1-mean(r1))**2
+par(mfrow=c(2,1))
+acf(sq)
+pacf(sq)
+Box.test(sq,lag=6,type="Ljung")
+Box.test(sq,lag=12,type="Ljung")
+
+sq = (r2-mean(r2))**2
+par(mfrow=c(2,1))
+acf(sq)
+pacf(sq)
+Box.test(sq,lag=6,type="Ljung")
+Box.test(sq,lag=12,type="Ljung")
+
+##garch模??????
+garch1=garchFit(~garch(1,1),data=r1,include.mean=T,cond.dist="std",trace=F)
+summary(garch1)
+
+garch2=garchFit(~garch(1,1),data=r2,include.mean=T,cond.dist="std",trace=F)
+summary(garch2)
+
+##????模??
+garchs=garchFit(~arma(2,0)+garch(1,1),data=retaud$spot,include.mean=F,cond.dist="std",trace=F)
+summary(garchs)
+sigmas = garchs@sigma.t
+
+garchf=garchFit(~garch(1,1),data=retaud$future,include.mean=F,cond.dist="std",trace=F)
+summary(garchf)
+sigmaf = garchf@sigma.t
+
+rho = cor(retauds,retaudf)
+hedge = rho*sigmas/sigmaf
+meanaud = mean(retauds-hedge*retaudf)
+varianceaud = sd(retauds-hedge*retaudf)
+head(retauds-hedge*retaudf)
+######################################################################
+######################################################################
+#################################################################garch
+par(mfrow=c(2,1))
+acf(retcads)
+pacf(retcads)
+acf(retcadf)
+pacf(retcadf)
+
+##gold price arma model 1: arima(2,0,0)
+arma1=arima(retcads,order=c(2,0,0))
+arma1
+summary(arma1)
+tsdiag(arma1)
+r1=as.ts(arma1$residuals)
+par(mfrow=c(3,1))
+plot(r1)
+acf(r1)
+pacf(r1)
+Box.test(r1,lag=8,type="Ljung")
+abs(polyroot(c(1,arma1$coef[1])))
+aic = -16891.41
+
+arma2=arima(retcadf,order=c(4,0,0))
+arma2
+summary(arma2)
+tsdiag(arma2)
+r2=as.ts(arma2$residuals)
+par(mfrow=c(3,1))
+plot(r2)
+acf(r2)
+pacf(r2)
+Box.test(r2,lag=8,type="Ljung")
+abs(polyroot(c(2,arma2$coef[1])))
+aic = -16610
+##arch data
+sq = (r1-mean(r1))**2
+par(mfrow=c(2,1))
+acf(sq)
+pacf(sq)
+Box.test(sq,lag=6,type="Ljung")
+Box.test(sq,lag=12,type="Ljung")
+
+sq = (r2-mean(r2))**2
+par(mfrow=c(2,1))
+acf(sq)
+pacf(sq)
+Box.test(sq,lag=6,type="Ljung")
+Box.test(sq,lag=12,type="Ljung")
+##garch模??????
+garch1=garchFit(~garch(1,1),data=r1,include.mean=T,cond.dist="std",trace=F)
+summary(garch1)
+garch2=garchFit(~garch(1,1),data=r2,include.mean=T,cond.dist="std",trace=F)
+summary(garch2)
+
+##????模??
+garchs=garchFit(~arma(2,0)+garch(1,1),data=retcad$spot,include.mean=F,cond.dist="std",trace=F)
+summary(garchs)
+sigmas = garchs@sigma.t
+garchf=garchFit(~arma(4,0)+garch(1,1),data=retcad$future,include.mean=F,cond.dist="std",trace=F)
+summary(garchf)
+sigmaf = garchf@sigma.t
+
+rho = cor(retcads,retcadf)
+hedge = rho*sigmas/sigmaf
+head(hedge)
+meancad = mean(retcads-hedge*retcadf)
+variancecad = sd(retcads-hedge*retcadf)
+head(retcads-hedge*retcadf)
+######################################################################
+######################################################################
+#################################################################garch
+par(mfrow=c(2,1))
+acf(retchfs)
+pacf(retchfs)
+acf(retchff)
+pacf(retchff)
+
+##gold price arma model 1: arima(2,0,0)
+arma1=arima(retchfs,order=c(1,0,0))
+arma1
+summary(arma1)
+tsdiag(arma1)
+r1=retchfs
+  as.ts(arma1$residuals)
+par(mfrow=c(3,1))
+plot(r1)
+acf(r1)
+pacf(r1)
+Box.test(r1,lag=8,type="Ljung")
+abs(polyroot(c(1,arma1$coef[1])))
+aic = -16891.41
+
+arma2=arima(retchff,order=c(4,0,0))
+arma2
+summary(arma2)
+tsdiag(arma2)
+r2=retchff
+  as.ts(arma2$residuals)
+par(mfrow=c(3,1))
+plot(r2)
+acf(r2)
+pacf(r2)
+Box.test(r2,lag=8,type="Ljung")
+abs(polyroot(c(2,arma2$coef[1])))
+aic = -16610
+##arch data
+sq = (r1-mean(r1))**2
+par(mfrow=c(2,1))
+acf(sq)
+pacf(sq)
+Box.test(sq,lag=6,type="Ljung")
+Box.test(sq,lag=12,type="Ljung")
+
+sq = (r2-mean(r2))**2
+par(mfrow=c(2,1))
+acf(sq)
+pacf(sq)
+Box.test(sq,lag=6,type="Ljung")
+Box.test(sq,lag=12,type="Ljung")
+##garch模??????
+garch1=garchFit(~garch(1,1),data=r1,include.mean=T,cond.dist="std",trace=F)
+summary(garch1)
+garch2=garchFit(~garch(1,1),data=r2,include.mean=T,cond.dist="std",trace=F)
+summary(garch2)
+
+##????模??
+garchs=garchFit(~garch(1,1),data=retchf$spot,include.mean=F,cond.dist="std",trace=F)
+summary(garchs)
+sigmas = garchs@sigma.t
+garchf=garchFit(~garch(1,1),data=retchf$future,include.mean=F,cond.dist="std",trace=F)
+summary(garchf)
+sigmaf = garchf@sigma.t
+
+rho = cor(retchfs,retchff)
+hedge = rho*sigmas/sigmaf
+head(hedge)
+meanchf = mean(retchfs-hedge*retchff)
+variancechf = sd(retchfs-hedge*retchff)
+head(retchfs-hedge*retchff)
+######################################################################
+######################################################################
+#################################################################garch
+par(mfrow=c(2,1))
+acf(reteurs)
+pacf(reteurs)
+acf(reteurf)
+pacf(reteurf)
+
+##gold price arma model 1: arima(2,0,0)
+arma1=arima(reteurs,order=c(1,0,0))
+arma1
+summary(arma1)
+tsdiag(arma1)
+r1=as.ts(arma1$residuals)
+par(mfrow=c(3,1))
+plot(r1)
+acf(r1)
+pacf(r1)
+Box.test(r1,lag=8,type="Ljung")
+abs(polyroot(c(1,arma1$coef[1])))
+aic = -16891.41
+
+arma2=arima(reteurf,order=c(4,0,0))
+arma2
+summary(arma2)
+tsdiag(arma2)
+r2=retchff
+as.ts(arma2$residuals)
+par(mfrow=c(3,1))
+plot(r2)
+acf(r2)
+pacf(r2)
+Box.test(r2,lag=8,type="Ljung")
+abs(polyroot(c(2,arma2$coef[1])))
+aic = -16610
+##arch data
+sq = (r1-mean(r1))**2
+par(mfrow=c(2,1))
+acf(sq)
+pacf(sq)
+Box.test(sq,lag=6,type="Ljung")
+Box.test(sq,lag=12,type="Ljung")
+
+sq = (r2-mean(r2))**2
+par(mfrow=c(2,1))
+acf(sq)
+pacf(sq)
+Box.test(sq,lag=6,type="Ljung")
+Box.test(sq,lag=12,type="Ljung")
+##garch模??????
+garch1=garchFit(~garch(1,1),data=r1,include.mean=T,cond.dist="std",trace=F)
+summary(garch1)
+garch2=garchFit(~garch(1,1),data=r2,include.mean=T,cond.dist="std",trace=F)
+summary(garch2)
+
+##????模??
+garchs=garchFit(~arma(1,0)+garch(1,1),data=reteur$spot,include.mean=F,cond.dist="std",trace=F)
+summary(garchs)
+sigmas = garchs@sigma.t
+garchf=garchFit(~garch(1,1),data=reteur$future,include.mean=F,cond.dist="std",trace=F)
+summary(garchf)
+sigmaf = garchf@sigma.t
+
+rho = cor(reteurs,reteurf)
+hedge = rho*sigmas/sigmaf
+head(hedge)
+meaneur = mean(reteurs-hedge*reteurf)
+varianceeur = sd(reteurs-hedge*reteurf)
+head(reteurs-hedge*reteurf)
+######################################################################
+######################################################################
+#################################################################garch
+par(mfrow=c(2,1))
+acf(retgbps)
+pacf(retgbps)
+acf(retgbpf)
+pacf(retgbpf)
+
+##gold price arma model 1: arima(2,0,0)
+arma1=arima(retgbps,order=c(1,0,0))
+arma1
+summary(arma1)
+tsdiag(arma1)
+r1=as.ts(arma1$residuals)
+par(mfrow=c(3,1))
+plot(r1)
+acf(r1)
+pacf(r1)
+Box.test(r1,lag=8,type="Ljung")
+abs(polyroot(c(1,arma1$coef[1])))
+aic = -16891.41
+
+arma2=arima(retgbpf,order=c(4,0,0))
+arma2
+summary(arma2)
+tsdiag(arma2)
+r2=retgbpf
+  as.ts(arma2$residuals)
+par(mfrow=c(3,1))
+plot(r2)
+acf(r2)
+pacf(r2)
+Box.test(r2,lag=8,type="Ljung")
+abs(polyroot(c(2,arma2$coef[1])))
+aic = -16610
+##arch data
+sq = (r1-mean(r1))**2
+par(mfrow=c(2,1))
+acf(sq)
+pacf(sq)
+Box.test(sq,lag=6,type="Ljung")
+Box.test(sq,lag=12,type="Ljung")
+
+sq = (r2-mean(r2))**2
+par(mfrow=c(2,1))
+acf(sq)
+pacf(sq)
+Box.test(sq,lag=6,type="Ljung")
+Box.test(sq,lag=12,type="Ljung")
+##garch模??????
+garch1=garchFit(~garch(1,1),data=r1,include.mean=T,cond.dist="std",trace=F)
+summary(garch1)
+garch2=garchFit(~garch(1,1),data=r2,include.mean=T,cond.dist="std",trace=F)
+summary(garch2)
+
+##????模??
+garchs=garchFit(~arma(1,0)+garch(1,1),data=retgbp$spot,include.mean=F,cond.dist="std",trace=F)
+summary(garchs)
+sigmas = garchs@sigma.t
+garchf=garchFit(~garch(4,0),data=retgbp$future,include.mean=F,cond.dist="std",trace=F)
+summary(garchf)
+sigmaf = garchf@sigma.t
+
+rho = cor(retgbps,retgbpf)
+hedge = rho*sigmas/sigmaf
+head(hedge)
+meangbp = mean(retgbps-hedge*retgbpf)
+variancegbp = sd(retgbps-hedge*retgbpf)
+head(retgbps-hedge*retgbpf)
+
+
+
+
+
+
+
+###############################################################
+##????garch模??
+par(mfrow=c(2,1))
+plot(r1,type='l')
+plot(garch1@sigma.t,type='l')##??????ht,??取??????
+sresi=garch1@residuals/garch1@sigma.t##vt????准???牟胁?stantard residual
+
+##v(t)??????????
+plot(sresi,type='l')
+pacf(sresi**2)
+Box.test(sresi**2,lag=12,type='Ljung')
+
+##??态?约???
+par(mfrow=c(1,1))
+plot(sresi,type='l')
+hist(sresi)
+densityPlot(as.timeSeries(sresi))##??态?植???锟斤拷??应?????睾?
+curve(dnorm(x),xlim=c(-5,5),col="green",lwd=3,add=TRUE)
+curve(dnorm(x,mean(sresi),sd(sresi)),xlim=c(-5,5),lwd=3,col="blue",add=TRUE)
+##???????莨锟斤拷瞥??木?值?头?????????态?植???原图?谢???
+##?????欠???态?植?
+qqnorm(sresi)
+qqline(sresi)
+
+#####final model t distribution test
+garchs=garchFit(~arma(2,0)+garch(1,3),data=retauds,include.mean=T,cond.dist="std",trace=F)
+plot(garchs@sigma.t,type="l")
+sdres=garchs@residuals/garchs@sigma.t
+par(mfrow=c(3,1))
+plot(sdres,type="l")
+acf(sdres)
+pacf(sdres)
+Box.test(sdres,lag=6,type="Ljung")
+Box.test(sdres,lag=12,type="Ljung")
+v=6.410
+h1=bw.ucv(sdres)
+f=density(sdres,bw=h1,from=min(sdres,to=max(sdres)))
+par(mfrow=c(1,1))
+plot(f,type="l",lwd=2,main="",xlab="sdres",col="blue")
+curve(sqrt(v/(v-2))*dt(x*sqrt(v/(v-2)),df=v),col="red",add=TRUE,lwd=2)
+qqplot(rt(10000,v),sdres)
+qqline(sdres,distribution=function(x)qt(x,df=4))
+plot(retauds,type="l")
+lines(garchs@sigma.t,col="red",lwd=2)
+
+
+
+
+
+
+length(cad[,1])
+cad[cad$Date=="2010-06-01",]
+chf[chf$Date=="2010-06-01",]
+eur[eur$Date=="2010-06-01",]
+gbp[gbp$Date=="2010-06-01",]
+nzd[nzd$Date=="2010-06-01",]
+#########################################################
+cor(diff(log(aud[1374:2532,3])),diff(log(aud[1374:2532,4])))
+cor(diff(log(cad[1375:length(cad[,1]),3])),diff(log(cad[1375:length(cad[,1]),4])))
+cor(diff(log(chf[1374:length(chf[,1]),3])),diff(log(chf[1374:length(chf[,1]),4])))
+cor(diff(log(eur[1374:length(eur[,1]),3])),diff(log(eur[1374:length(eur[,1]),4])))
+cor(diff(log(gbp[1375:length(gbp[,1]),3])),diff(log(gbp[1375:length(gbp[,1]),4])))
+##########################################################
+audtest = read.csv("file:///Users/dangwenqi/Desktop/鍥介檯閲戣瀺/data/audtest.csv",header = T)
+cadtest = read.csv("file:///Users/dangwenqi/Desktop/鍥介檯閲戣瀺/data/cadtest.csv",header = T)
+chftest = read.csv("file:///Users/dangwenqi/Desktop/鍥介檯閲戣瀺/data/chftest.csv",header = T)
+eurtest = read.csv("file:///Users/dangwenqi/Desktop/鍥介檯閲戣瀺/data/eurtest.csv",header = T)
+gbptest = read.csv("file:///Users/dangwenqi/Desktop/鍥介檯閲戣瀺/data/gbptest.csv",header = T)
+n = length(aud[,2])
+head(audtest)
+cor(diff(log(audtest[,3])),diff(log(audtest[,4])))
+cor(diff(log(cadtest[,3])),diff(log(cadtest[,4])))
+cor(diff(log(chftest[,3])),diff(log(chftest[,4])))
+cor(diff(log(eurtest[,3])),diff(log(eurtest[,4])))
+cor(diff(log(gbptest[,3])),diff(log(gbptest[,4])))
+
+retaudtest = audtest[,-1]
+retaudtest[-1,2] = diff(log(audtest[,3]))
+retaudtest[-1,3] = diff(log(audtest[,4]))
+retaudtest = retaudtest[-1,]
+head(retaudtest)
+
+retcadtest = cadtest[,-1]
+retcadtest[-1,2] = diff(log(cadtest[,3]))
+retcadtest[-1,3] = diff(log(cadtest[,4]))
+retcadtest = retcadtest[-1,]
+head(retcadtest)
+
+retchftest = chftest[,-1]
+retchftest[-1,2] = diff(log(chftest[,3]))
+retchftest[-1,3] = diff(log(chftest[,4]))
+retchftest = retchftest[-1,]
+head(retchftest)
+
+reteurtest = eurtest[,-1]
+reteurtest[-1,2] = diff(log(eurtest[,3]))
+reteurtest[-1,3] = diff(log(eurtest[,4]))
+reteurtest = reteurtest[-1,]
+head(reteurtest)
+
+retgbptest = gbptest[,-1]
+retgbptest[-1,2] = diff(log(gbptest[,3]))
+retgbptest[-1,3] = diff(log(gbptest[,4]))
+retgbptest = retgbptest[-1,]
+head(retgbptest)
+#################################################################
+garchs=garchFit(~arma(2,0)+garch(1,1),data=retaudtest$spot,include.mean=F,cond.dist="std",trace=F)
+summary(garchs)
+sigmas = garchs@sigma.t
+garchf=garchFit(~garch(1,1),data=retaudtest$future,include.mean=F,cond.dist="std",trace=F)
+summary(garchf)
+sigmaf = garchf@sigma.t
+
+rho = cor(retaudtest$spot,retaudtest$future)
+hedge = rho*sigmas/sigmaf
+meanaud = mean(retaudtest$spot-hedge*retaudtest$future)
+varianceaud = sd(retaudtest$spot-hedge*retaudtest$future)
+#################################################################
+garchs=garchFit(~arma(2,0)+garch(1,1),data=retcadtest$spot,include.mean=F,cond.dist="std",trace=F)
+summary(garchs)
+sigmas = garchs@sigma.t
+garchf=garchFit(~arma(4,0)+garch(1,1),data=retcadtest$future,include.mean=F,cond.dist="std",trace=F)
+summary(garchf)
+sigmaf = garchf@sigma.t
+
+rho = cor(retcadtest$spot,retcadtest$future)
+hedge = rho*sigmas/sigmaf
+meancad = mean(retcadtest$spot-hedge*retcadtest$future)
+variancecad = sd(retcadtest$spot-hedge*retcadtest$future)
+head(retcadtest$spot-hedge*retcadtest$future)
+#################################################################
+garchs=garchFit(~garch(1,1),data=retchftest$spot,include.mean=F,cond.dist="std",trace=F)
+summary(garchs)
+sigmas = garchs@sigma.t
+garchf=garchFit(~garch(1,1),data=retchftest$future,include.mean=F,cond.dist="std",trace=F)
+summary(garchf)
+sigmaf = garchf@sigma.t
+
+rho = cor(retchftest$spot,retchftest$future)
+hedge = rho*sigmas/sigmaf
+head(hedge)
+meanchf = mean(retchftest$spot-hedge*retchftest$future)
+variancechf = sd(retchftest$spot-hedge*retchftest$future)
+head(retchftest$spot-hedge*retchftest$future)
+#################################################################
+garchs=garchFit(~arma(1,0)+garch(1,1),data=reteurtest$spot,include.mean=F,cond.dist="std",trace=F)
+summary(garchs)
+sigmas = garchs@sigma.t
+garchf=garchFit(~garch(1,1),data=reteurtest$future,include.mean=F,cond.dist="std",trace=F)
+summary(garchf)
+sigmaf = garchf@sigma.t
+
+rho = cor(reteurtest$spot,reteurtest$future)
+hedge = rho*sigmas/sigmaf
+head(hedge)
+meaneur = mean(reteurtest$spot-hedge*reteurtest$future)
+varianceeur = sd(reteurtest$spot-hedge*reteurtest$future)
+head(reteurtest$spot-hedge*reteurtest$future)
+#################################################################
+garchs=garchFit(~arma(1,0)+garch(1,1),data=retgbptest$spot,include.mean=F,cond.dist="std",trace=F)
+summary(garchs)
+sigmas = garchs@sigma.t
+garchf=garchFit(~garch(4,0),data=retgbptest$future,include.mean=F,cond.dist="std",trace=F)
+summary(garchf)
+sigmaf = garchf@sigma.t
+
+rho = cor(retgbptest$spot,retgbptest$future)
+hedge = rho*sigmas/sigmaf
+head(hedge)
+meangbp = mean(retgbptest$spot-hedge*retgbptest$future)
+variancegbp = sd(retgbptest$spot-hedge*retgbptest$future)
+head(retgbptest$spot-hedge*retgbptest$future)
+#################################################################
+#########################################aud
+head(retaudtest)
+r=lm(retaudtest$spot~retaudtest$future)
+summary(r)
+h = 0.7880200
+sd(retaudtest$spot)
+sd(retaudtest$future)
+mean(retaudtest$spot-retaudtest$future)
+sd(retaudtest$spot-retaudtest$future)
+sd(retaudtest$spot-h*retaudtest$future)
+mean(retaudtest$spot-h*retaudtest$future)
+#########################################cad
+r=lm(retcadtest$spot~retcadtest$future)
+summary(r)
+h = 0.8149310
+sd(retcadtest$spot)
+sd(retcadtest$future)
+mean(retcadtest$spot-retcadtest$future)
+sd(retcadtest$spot-retcadtest$future)
+sd(retcadtest$spot-h*retcadtest$future)
+mean(retcadtest$spot-h*retcadtest$future)
+#########################################chf
+r=lm(retchftest$spot~retchftest$future)
+summary(r)
+h = 0.9579969
+sd(retchftest$spot)
+sd(retchftest$future)
+mean(retchftest$spot-retchftest$future)
+sd(retchftest$spot-retchftest$future)
+sd(retchftest$spot-h*retchftest$future)
+mean(retchftest$spot-h*retchftest$future)
+#########################################eur
+r=lm(reteurtest$spot~reteurtest$future)
+summary(r)
+h = 0.7582290
+sd(reteurtest$spot)
+sd(reteurtest$future)
+mean(reteurtest$spot-reteurtest$future)
+sd(reteurtest$spot-reteurtest$future)
+sd(reteurtest$spot-h*reteurtest$future)
+mean(reteurtest$spot-h*reteurtest$future)
+#########################################gbp
+r=lm(retgbptest$spot~retgbptest$future)
+summary(r)
+h = 0.7495
+sd(retgbptest$spot)
+sd(retgbptest$future)
+mean(retgbptest$spot-retgbptest$future)
+sd(retgbptest$spot-retgbptest$future)
+sd(retgbptest$spot-h*retgbptest$future)
+mean(retgbptest$spot-h*retgbptest$future)
+
+#####################################
+innaive = c(-1.11E-04,-4.57E-05,-6.95E-05,-6.63E-05,-4.91E-05)
+inols = c(-8.23189E-05,-8.28988E-06,-8.89141E-05,-5.7892E-05,-5.65558E-05)
+ingarch = c(-0.00010208,-7.30655E-06,-6.95861E-05,-4.10657E-05,-3.38329E-05)
+intdcc = c(-5.10E-05,-1.86E-05,-5.85E-05,-1.22E-05,-4.23E-05)
+insdcc = c(-6.18E-05,-1.51E-05,-4.55E-05,-1.88E-05,-5.59E-05)
+inadcc = c(-5.84E-05,-1.28E-05,-5.72E-05,-2.26E-05,-6.10E-05)
+x = c("AUD","CAD","CHF","EUR","GBP")
+
+plot(in1,type = "o",col = 1,pch = 15,
+     xlab = "currency",ylab = "utility")
+in1 = array(0,dim = c(5,2))
+in1[,1] = x
+in1[,2] = innaive
+
+
+plot(caud[,2],caud[,1],type = "o",col = 1,pch = 15,
+     xlab = "Degree of Spread",ylab = "Correlation",
+     xlim = c(-3,3),ylim = c(0,1))
+lines(ccad[,2],ccad[,1],type = "o",col = 2,pch = 16)
+lines(cchf[,2],cchf[,1],type = "o",col = 3,pch = 17)
+lines(ceur[,2],ceur[,1],type = "o",col = 4,pch = 18)
+lines(cgbp[,2],cgbp[,1],type = "o",col = 5,pch = 19)
